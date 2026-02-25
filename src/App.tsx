@@ -16,18 +16,81 @@ import bannerImg from "./assets/banner.jpeg";
 const WHATSAPP_LINK =
   "https://wa.me/5591999246801?text=Oi!%20Quero%20um%20or%C3%A7amento%20com%20a%20Sync.ode";
 
+// ✅ Google Analytics (GA4)
+const GA_MEASUREMENT_ID = "G-FY4DZV4NPK";
+
+declare global {
+  interface Window {
+    dataLayer?: any[];
+    gtag?: (...args: any[]) => void;
+  }
+}
+
+function ensureGA(measurementId: string) {
+  if (typeof window === "undefined") return;
+
+  const src = `https://www.googletagmanager.com/gtag/js?id=${measurementId}`;
+  const existing = document.querySelector(`script[src="${src}"]`);
+  if (!existing) {
+    const s = document.createElement("script");
+    s.async = true;
+    s.src = src;
+    document.head.appendChild(s);
+  }
+
+  window.dataLayer = window.dataLayer || [];
+  window.gtag =
+    window.gtag ||
+    function gtag() {
+      window.dataLayer!.push(arguments);
+    };
+
+  window.gtag("js", new Date());
+  window.gtag("config", measurementId, {
+    anonymize_ip: true,
+    send_page_view: true,
+  });
+}
+
+function trackPageView(measurementId: string) {
+  if (typeof window === "undefined") return;
+  if (typeof window.gtag !== "function") return;
+
+  const page_location = window.location.href;
+  const page_path =
+    window.location.pathname + window.location.search + window.location.hash;
+
+  window.gtag("event", "page_view", {
+    page_title: document.title,
+    page_location,
+    page_path,
+    send_to: measurementId,
+  });
+}
+
+function gaEvent(name: string, params?: Record<string, any>) {
+  if (typeof window === "undefined") return;
+  if (typeof window.gtag !== "function") return;
+  window.gtag("event", name, { send_to: GA_MEASUREMENT_ID, ...(params || {}) });
+}
+
 // ====== INFO EMPRESA (FOOTER) ======
 const COMPANY = {
   name: "Sync.ode LTDA",
   email: "sync.odegroup@gmail.com",
-  phone: "",
-  cnpj: "00.000.000/0001-00", // <- troque pelo CNPJ real
-  address: "Belém - PA, Brasil", // <- opcional
-  instagram: "@sync.ode", // <- opcional
-  tagline: "Trabalhamos com contrato e escopo de projeto para garantir clareza, prazos e entregas.",
+  phone: "+55 (91) 99924-6801",
+  address: "Belém - PA, Brasil",
+  instagram: "@sync.ode",
+  tagline:
+    "Trabalhamos com contrato e escopo de projeto para garantir clareza, prazos e entregas.",
 };
 
-// ✅ PORTFÓLIO
+/**
+ * ✅ PORTFÓLIO:
+ * - type: "image" ou "video"
+ * - src: URL da imagem ou vídeo (mp4 / webm) ou embed (youtube/vimeo) via iframe
+ * - thumb: miniatura (para vídeos, use thumb da capa)
+ */
 const PORTFOLIO: Array<
   | {
       id: string;
@@ -253,16 +316,19 @@ function CTAButton({
   children,
   primary,
   external,
+  onClick,
 }: {
   href: string;
   children: React.ReactNode;
   primary?: boolean;
   external?: boolean;
+  onClick?: () => void;
 }) {
   if (primary) {
     return (
       <motion.a
         href={href}
+        onClick={onClick}
         {...(external ? { target: "_blank", rel: "noreferrer" } : {})}
         whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.98 }}
@@ -292,6 +358,7 @@ function CTAButton({
   return (
     <motion.a
       href={href}
+      onClick={onClick}
       whileHover={{ y: -1 }}
       whileTap={{ scale: 0.99 }}
       className="inline-flex items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] px-6 py-3 text-sm text-white/80 backdrop-blur transition hover:bg-white/[0.07]"
@@ -377,23 +444,34 @@ function MediaModal({
 export default function App() {
   const year = useMemo(() => new Date().getFullYear(), []);
 
+  // ✅ GOOGLE ANALYTICS (gtag) + pageviews (SPA/hash)
+  useEffect(() => {
+    ensureGA(GA_MEASUREMENT_ID);
+
+    const t = window.setTimeout(() => trackPageView(GA_MEASUREMENT_ID), 350);
+
+    const onHashChange = () => trackPageView(GA_MEASUREMENT_ID);
+    window.addEventListener("hashchange", onHashChange);
+
+    return () => {
+      window.clearTimeout(t);
+      window.removeEventListener("hashchange", onHashChange);
+    };
+  }, []);
+
   // ✅ FAVICON (logo na aba do navegador)
   useEffect(() => {
-    const ensureFavicon = () => {
-      let link = document.querySelector("link[rel='icon']") as HTMLLinkElement | null;
-      if (!link) {
-        link = document.createElement("link");
-        link.rel = "icon";
-        document.head.appendChild(link);
-      }
-      link.type = "image/jpeg";
-      link.href = logoImg as unknown as string;
-
-      // opcional: título do site
-      document.title = "Sync.ode";
-    };
-
-    ensureFavicon();
+    let link = document.querySelector(
+      "link[rel='icon']"
+    ) as HTMLLinkElement | null;
+    if (!link) {
+      link = document.createElement("link");
+      link.rel = "icon";
+      document.head.appendChild(link);
+    }
+    link.type = "image/jpeg";
+    link.href = logoImg as unknown as string;
+    document.title = "Sync.ode";
   }, []);
 
   // mouse parallax
@@ -454,11 +532,16 @@ export default function App() {
 
       {/* Scroll progress bar */}
       <motion.div className="fixed left-0 top-0 z-[60] h-[2px] w-full bg-white/10">
-        <motion.div className="h-full origin-left bg-white/70" style={{ scaleX: progress }} />
+        <motion.div
+          className="h-full origin-left bg-white/70"
+          style={{ scaleX: progress }}
+        />
       </motion.div>
 
       {/* Modal */}
-      {openItem ? <MediaModal item={openItem} onClose={() => setOpenId(null)} /> : null}
+      {openItem ? (
+        <MediaModal item={openItem} onClose={() => setOpenId(null)} />
+      ) : null}
 
       {/* HEADER */}
       <motion.header
@@ -488,10 +571,14 @@ export default function App() {
                   aria-hidden
                   className="absolute -inset-5 rounded-3xl bg-white/10 blur-2xl"
                   animate={{ opacity: [0.25, 0.5, 0.25] }}
-                  transition={{ duration: 3.8, repeat: Infinity, ease: "easeInOut" }}
+                  transition={{
+                    duration: 3.8,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                  }}
                 />
 
-                {/* ✅ LOGO MAIOR (ZOOM BEM GRANDE) */}
+                {/* ✅ LOGO MAIOR */}
                 <div className="relative h-16 w-16 md:h-20 md:w-20">
                   <img
                     src={logoImg}
@@ -508,7 +595,10 @@ export default function App() {
                   <motion.div
                     initial={{ opacity: 0, y: -6, filter: "blur(8px)" }}
                     animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                    transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+                    transition={{
+                      duration: 0.6,
+                      ease: [0.16, 1, 0.3, 1],
+                    }}
                     className="relative"
                   >
                     <span className="text-[15px] font-semibold tracking-[-0.02em] md:text-[16px]">
@@ -522,14 +612,17 @@ export default function App() {
                       className="absolute -bottom-1 left-0 h-[1px] w-full bg-white/25"
                       initial={{ scaleX: 0.4, opacity: 0 }}
                       animate={{ scaleX: 1, opacity: 1 }}
-                      transition={{ duration: 0.7, delay: 0.12, ease: [0.16, 1, 0.3, 1] }}
+                      transition={{
+                        duration: 0.7,
+                        delay: 0.12,
+                        ease: [0.16, 1, 0.3, 1],
+                      }}
                       style={{ transformOrigin: "left" }}
                     />
                   </motion.div>
                 </div>
 
-                {/* ✅ FRASE: CONTRATO + ESCOPO */}
-                <div className="mt-1 max-w-[320px] text-[11px] text-white/55">
+                <div className="mt-1 max-w-[340px] text-[11px] text-white/55">
                   {COMPANY.tagline}
                 </div>
               </div>
@@ -547,14 +640,20 @@ export default function App() {
                         href={i.href}
                         className={cn(
                           "relative rounded-xl px-4 py-2 text-sm transition",
-                          isActive ? "text-white" : "text-white/70 hover:text-white"
+                          isActive
+                            ? "text-white"
+                            : "text-white/70 hover:text-white"
                         )}
                       >
                         {isActive && (
                           <motion.span
                             layoutId="nav-active"
                             className="absolute inset-0 -z-10 rounded-xl bg-white/10"
-                            transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                            transition={{
+                              type: "spring",
+                              stiffness: 380,
+                              damping: 30,
+                            }}
                           />
                         )}
                         {i.label}
@@ -574,19 +673,30 @@ export default function App() {
                 Contato
               </a>
 
+              {/* ✅ EVENTO NO WHATSAPP DO HEADER */}
               <motion.a
                 href={WHATSAPP_LINK}
                 target="_blank"
                 rel="noreferrer"
                 whileHover={{ y: -1 }}
                 whileTap={{ scale: 0.99 }}
+                onClick={() =>
+                  gaEvent("click_whatsapp", {
+                    where: "header",
+                    label: "whatsapp_header",
+                  })
+                }
                 className="relative inline-flex items-center justify-center overflow-hidden rounded-xl bg-white px-4 py-2 text-sm font-semibold text-black shadow-[0_10px_30px_rgba(255,255,255,0.12)]"
               >
                 <motion.span
                   aria-hidden
                   className="pointer-events-none absolute -left-40 top-0 h-full w-72 -skew-x-12 bg-gradient-to-r from-transparent via-black/10 to-transparent"
                   animate={{ x: [-120, 520] }}
-                  transition={{ duration: 5.8, repeat: Infinity, ease: "linear" }}
+                  transition={{
+                    duration: 5.8,
+                    repeat: Infinity,
+                    ease: "linear",
+                  }}
                 />
                 <span className="relative">WhatsApp</span>
               </motion.a>
@@ -600,8 +710,16 @@ export default function App() {
         <Container>
           <div className="grid gap-10 md:grid-cols-12 md:items-center">
             {/* texto */}
-            <motion.div variants={vContainer} initial="hidden" animate="show" className="md:col-span-6">
-              <motion.div variants={vFadeUp} className="mb-4 flex flex-wrap gap-2">
+            <motion.div
+              variants={vContainer}
+              initial="hidden"
+              animate="show"
+              className="md:col-span-6"
+            >
+              <motion.div
+                variants={vFadeUp}
+                className="mb-4 flex flex-wrap gap-2"
+              >
                 <Pill>Minimalista</Pill>
                 <Pill>Premium</Pill>
                 <Pill>Alta performance</Pill>
@@ -615,18 +733,38 @@ export default function App() {
                 <span className="text-white/60"> para destravar processos.</span>
               </motion.h1>
 
-              <motion.p variants={vFadeUp} className="mt-5 max-w-2xl text-sm leading-relaxed text-white/70 md:text-base">
-                Sistemas e automações para você operar com clareza, controle e velocidade — sem excesso de complexidade.
+              <motion.p
+                variants={vFadeUp}
+                className="mt-5 max-w-2xl text-sm leading-relaxed text-white/70 md:text-base"
+              >
+                Sistemas e automações para você operar com clareza, controle e
+                velocidade — sem excesso de complexidade.
               </motion.p>
 
-              <motion.div variants={vFadeUp} className="mt-8 flex flex-col gap-3 sm:flex-row">
-                <CTAButton href={WHATSAPP_LINK} primary external>
+              <motion.div
+                variants={vFadeUp}
+                className="mt-8 flex flex-col gap-3 sm:flex-row"
+              >
+                <CTAButton
+                  href={WHATSAPP_LINK}
+                  primary
+                  external
+                  onClick={() =>
+                    gaEvent("click_whatsapp", {
+                      where: "hero",
+                      label: "cta_pedir_orcamento",
+                    })
+                  }
+                >
                   Pedir orçamento
                 </CTAButton>
                 <CTAButton href="#servicos">Ver serviços</CTAButton>
               </motion.div>
 
-              <motion.div variants={vFadeUp} className="mt-9 flex flex-wrap gap-2 text-xs text-white/55">
+              <motion.div
+                variants={vFadeUp}
+                className="mt-9 flex flex-wrap gap-2 text-xs text-white/55"
+              >
                 <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 backdrop-blur">
                   ✔ Entrega por etapas
                 </span>
@@ -636,7 +774,6 @@ export default function App() {
                 <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 backdrop-blur">
                   ✔ Suporte e evolução
                 </span>
-                {/* ✅ contrato + escopo */}
                 <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 backdrop-blur">
                   ✔ Contrato & Escopo de projeto
                 </span>
@@ -663,7 +800,11 @@ export default function App() {
                   aria-hidden
                   className="pointer-events-none absolute -inset-20 rounded-full bg-white/10 blur-3xl"
                   animate={{ opacity: [0.15, 0.28, 0.15] }}
-                  transition={{ duration: 4.8, repeat: Infinity, ease: "easeInOut" }}
+                  transition={{
+                    duration: 4.8,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                  }}
                 />
 
                 <div className="relative aspect-[16/11] w-full">
@@ -681,7 +822,9 @@ export default function App() {
                 <div className="absolute bottom-0 left-0 right-0 p-5 md:p-6">
                   <div className="flex items-center gap-2">
                     <span className="h-1.5 w-1.5 rounded-full bg-white/70" />
-                    <span className="text-xs text-white/70">Entregas com acabamento de produto</span>
+                    <span className="text-xs text-white/70">
+                      Entregas com acabamento de produto
+                    </span>
                   </div>
                   <div className="mt-2 text-sm font-semibold tracking-tight">
                     Sync.ode • Sistemas • Sites • Automações
@@ -696,10 +839,19 @@ export default function App() {
       {/* SERVIÇOS */}
       <section id="servicos" className="pt-14 md:pt-20">
         <Container>
-          <motion.div variants={vContainer} initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.25 }}>
+          <motion.div
+            variants={vContainer}
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true, amount: 0.25 }}
+          >
             <motion.div variants={vSoftIn} className="mb-8 max-w-2xl">
-              <div className="text-[11px] tracking-[0.35em] text-white/50">SERVIÇOS</div>
-              <h2 className="mt-2 text-2xl font-semibold tracking-tight md:text-3xl">O essencial, bem feito.</h2>
+              <div className="text-[11px] tracking-[0.35em] text-white/50">
+                SERVIÇOS
+              </div>
+              <h2 className="mt-2 text-2xl font-semibold tracking-tight md:text-3xl">
+                O essencial, bem feito.
+              </h2>
               <p className="mt-3 text-sm leading-relaxed text-white/65">
                 Software com acabamento de produto: limpo, rápido e seguro.
               </p>
@@ -732,10 +884,19 @@ export default function App() {
       {/* PORTFÓLIO */}
       <section id="portfolio" className="pt-14 md:pt-20">
         <Container>
-          <motion.div variants={vContainer} initial="hidden" whileInView="show" viewport={{ once: true, amount: 0.25 }}>
+          <motion.div
+            variants={vContainer}
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true, amount: 0.25 }}
+          >
             <motion.div variants={vSoftIn} className="mb-8 max-w-2xl">
-              <div className="text-[11px] tracking-[0.35em] text-white/50">PORTFÓLIO</div>
-              <h2 className="mt-2 text-2xl font-semibold tracking-tight md:text-3xl">Trabalhos e entregas</h2>
+              <div className="text-[11px] tracking-[0.35em] text-white/50">
+                PORTFÓLIO
+              </div>
+              <h2 className="mt-2 text-2xl font-semibold tracking-tight md:text-3xl">
+                Trabalhos e entregas
+              </h2>
               <p className="mt-3 text-sm leading-relaxed text-white/65">
                 Espaço para fotos e vídeos dos seus projetos. Clique para abrir.
               </p>
@@ -758,7 +919,14 @@ export default function App() {
                   <motion.button
                     key={p.id}
                     variants={vFadeUp}
-                    onClick={() => setOpenId(p.id)}
+                    onClick={() => {
+                      gaEvent("open_portfolio_item", {
+                        id: p.id,
+                        type: p.type,
+                        title: p.title,
+                      });
+                      setOpenId(p.id);
+                    }}
                     className={cn(
                       "group relative overflow-hidden rounded-3xl border border-white/10 bg-white/[0.04] backdrop-blur text-left",
                       "shadow-[0_0_0_1px_rgba(255,255,255,0.04),0_18px_50px_rgba(0,0,0,0.55)]",
@@ -795,12 +963,18 @@ export default function App() {
                     </div>
 
                     <div className="absolute bottom-0 left-0 right-0 p-5 md:p-6">
-                      <div className="text-sm font-semibold tracking-tight">{p.title}</div>
-                      <div className="mt-1 text-sm text-white/70 line-clamp-2">{p.desc}</div>
+                      <div className="text-sm font-semibold tracking-tight">
+                        {p.title}
+                      </div>
+                      <div className="mt-1 text-sm text-white/70 line-clamp-2">
+                        {p.desc}
+                      </div>
 
                       <div className="mt-4 inline-flex items-center gap-2 text-xs text-white/70">
                         <span className="h-1.5 w-1.5 rounded-full bg-white/60" />
-                        <span className="opacity-80 group-hover:opacity-100 transition">Abrir projeto</span>
+                        <span className="opacity-80 group-hover:opacity-100 transition">
+                          Abrir projeto
+                        </span>
                       </div>
                     </div>
                   </motion.button>
@@ -830,10 +1004,15 @@ export default function App() {
 
             <div className="grid gap-8 md:grid-cols-12 md:items-center">
               <div className="md:col-span-5">
-                <div className="text-[11px] tracking-[0.35em] text-white/50">PROCESSO</div>
-                <h3 className="mt-2 text-2xl font-semibold tracking-tight">Clareza do começo ao fim.</h3>
+                <div className="text-[11px] tracking-[0.35em] text-white/50">
+                  PROCESSO
+                </div>
+                <h3 className="mt-2 text-2xl font-semibold tracking-tight">
+                  Clareza do começo ao fim.
+                </h3>
                 <p className="mt-3 text-sm leading-relaxed text-white/65">
-                  Poucas etapas, comunicação direta e entrega incremental — sempre com contrato e escopo definidos.
+                  Poucas etapas, comunicação direta e entrega incremental —
+                  sempre com contrato e escopo definidos.
                 </p>
               </div>
 
@@ -850,14 +1029,20 @@ export default function App() {
                       initial={{ opacity: 0, y: 12, filter: "blur(10px)" }}
                       whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
                       viewport={{ once: true, amount: 0.35 }}
-                      transition={{ duration: 0.7, delay: 0.08 * idx, ease: [0.16, 1, 0.3, 1] }}
+                      transition={{
+                        duration: 0.7,
+                        delay: 0.08 * idx,
+                        ease: [0.16, 1, 0.3, 1],
+                      }}
                       className="flex items-start gap-4 rounded-2xl border border-white/10 bg-black/40 px-4 py-4"
                     >
                       <div className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] text-white/70">
                         {s.n}
                       </div>
                       <div>
-                        <div className="text-sm font-semibold tracking-tight">{s.t}</div>
+                        <div className="text-sm font-semibold tracking-tight">
+                          {s.t}
+                        </div>
                         <div className="mt-1 text-sm text-white/65">{s.d}</div>
                       </div>
                     </motion.div>
@@ -888,44 +1073,69 @@ export default function App() {
 
             <div className="grid gap-8 md:grid-cols-2 md:items-center">
               <div>
-                <div className="text-[11px] tracking-[0.35em] text-white/50">CONTATO</div>
-                <h3 className="mt-2 text-2xl font-semibold tracking-tight md:text-3xl">Vamos conversar.</h3>
+                <div className="text-[11px] tracking-[0.35em] text-white/50">
+                  CONTATO
+                </div>
+                <h3 className="mt-2 text-2xl font-semibold tracking-tight md:text-3xl">
+                  Vamos conversar.
+                </h3>
                 <p className="mt-4 text-sm leading-relaxed text-white/65">
-                  Me diga o que você quer automatizar ou criar. Retornamos um plano completo com proposta, contrato e
-                  escopo definido.
+                  Me diga o que você quer automatizar ou criar. Retornamos um
+                  plano completo com proposta, contrato e escopo definido.
                 </p>
 
                 <div className="mt-4 rounded-2xl border border-white/10 bg-black/30 p-4 text-sm text-white/70">
                   <div className="font-semibold text-white">Contrato & Escopo</div>
                   <div className="mt-1">
-                    Trabalhamos com contrato e escopo de projeto para garantir clareza nas entregas, prazos e custos — sem
-                    surpresas.
+                    Trabalhamos com contrato e escopo de projeto para garantir clareza nas
+                    entregas, prazos e custos — sem surpresas.
                   </div>
                 </div>
               </div>
 
               <div className="flex flex-col gap-3">
-                <CTAButton href={WHATSAPP_LINK} primary external>
+                {/* ✅ EVENTO NO "ENTRAR EM CONTATO" */}
+                <CTAButton
+                  href={WHATSAPP_LINK}
+                  primary
+                  external
+                  onClick={() =>
+                    gaEvent("click_whatsapp", {
+                      where: "contato",
+                      label: "cta_entrar_em_contato",
+                    })
+                  }
+                >
                   Entrar em Contato
                 </CTAButton>
 
+                {/* ✅ EVENTO NO EMAIL */}
                 <motion.a
                   href={`mailto:${COMPANY.email}`}
                   whileHover={{ y: -1 }}
                   whileTap={{ scale: 0.99 }}
+                  onClick={() =>
+                    gaEvent("click_email", {
+                      where: "contato",
+                      label: "email_contato",
+                      email: COMPANY.email,
+                    })
+                  }
                   className="inline-flex items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] px-6 py-3 text-sm text-white/80 backdrop-blur transition hover:bg-white/[0.07]"
                 >
                   {COMPANY.email}
                 </motion.a>
 
-                <div className="mt-3 text-xs text-white/55">© {year} {COMPANY.name}: Todos os direitos reservados.</div>
+                <div className="mt-3 text-xs text-white/55">
+                  © {year} {COMPANY.name}: Todos os direitos reservados.
+                </div>
               </div>
             </div>
           </motion.div>
         </Container>
       </section>
 
-      {/* ✅ FOOTER COMPLETO */}
+      {/* FOOTER COMPLETO */}
       <footer className="border-t border-white/10 bg-black/50 backdrop-blur">
         <Container>
           <div className="py-10">
@@ -933,37 +1143,70 @@ export default function App() {
               {/* Marca */}
               <div className="flex items-start gap-4">
                 <div className="h-24 w-24 overflow-hidden">
-                  <img src={logoImg} alt="Sync.ode logo" className="h-full w-full object-contain p-1" />
+                  <img
+                    src={logoImg}
+                    alt="Sync.ode logo"
+                    className="h-full w-full object-contain p-1"
+                  />
                 </div>
                 <div>
                   <div className="text-sm font-semibold">{COMPANY.name}</div>
-                  <div className="mt-1 text-sm text-white/60">{COMPANY.tagline}</div>
+                  <div className="mt-1 text-sm text-white/60">
+                    {COMPANY.tagline}
+                  </div>
                 </div>
               </div>
 
               {/* Contatos */}
               <div>
-                <div className="text-xs tracking-[0.35em] text-white/50">CONTATOS</div>
+                <div className="text-xs tracking-[0.35em] text-white/50">
+                  CONTATOS
+                </div>
                 <div className="mt-3 space-y-2 text-sm text-white/70">
-                  <a className="block hover:text-white" href={`mailto:${COMPANY.email}`}>
+                  <a
+                    className="block hover:text-white"
+                    href={`mailto:${COMPANY.email}`}
+                    onClick={() =>
+                      gaEvent("click_email", {
+                        where: "footer",
+                        label: "email_footer",
+                        email: COMPANY.email,
+                      })
+                    }
+                  >
                     {COMPANY.email}
                   </a>
-                  <a className="block hover:text-white" href={WHATSAPP_LINK} target="_blank" rel="noreferrer">
-                    {COMPANY.phone} Contato
+
+                  <a
+                    className="block hover:text-white"
+                    href={WHATSAPP_LINK}
+                    target="_blank"
+                    rel="noreferrer"
+                    onClick={() =>
+                      gaEvent("click_whatsapp", {
+                        where: "footer",
+                        label: "whatsapp_footer",
+                      })
+                    }
+                  >
+                    {COMPANY.phone}
                   </a>
+
                   <div className="text-white/55">{COMPANY.address}</div>
                 </div>
               </div>
 
               {/* Empresa / Legal */}
               <div>
-                <div className="text-xs tracking-[0.35em] text-white/50">EMPRESA</div>
+                <div className="text-xs tracking-[0.35em] text-white/50">
+                  EMPRESA
+                </div>
                 <div className="mt-3 space-y-2 text-sm text-white/70">
                   <div>
-                    <span className="text-white/50">CNPJ:</span> {COMPANY.cnpj}
                   </div>
                   <div>
-                    <span className="text-white/50">Instagram:</span> {COMPANY.instagram}
+                    <span className="text-white/50">Instagram:</span>{" "}
+                    {COMPANY.instagram}
                   </div>
                   <div className="pt-2 text-xs text-white/50">
                     Atendimento mediante contrato e escopo aprovado.
@@ -973,8 +1216,12 @@ export default function App() {
             </div>
 
             <div className="mt-8 flex flex-col items-start justify-between gap-3 border-t border-white/10 pt-6 text-xs text-white/55 md:flex-row md:items-center">
-              <div>© {year} {COMPANY.name}. Todos os direitos reservados.</div>
-              <div className="text-white/50">Desenvolvido por Sync.ode • Software sob medida</div>
+              <div>
+                © {year} {COMPANY.name}. Todos os direitos reservados.
+              </div>
+              <div className="text-white/50">
+                Desenvolvido por Sync.ode • Software sob medida
+              </div>
             </div>
           </div>
         </Container>
