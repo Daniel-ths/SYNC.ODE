@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import wbcVideo from "./assets/wbc.mp4";
+import gifedVideo from "./assets/gifed.mp4";
 import {
   motion,
   useMotionValue,
@@ -120,25 +122,26 @@ const PORTFOLIO: Array<
     desc: "Painel com métricas diárias e funil de atendimento.",
     src: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=1600&q=80",
   },
-  {
-    id: "p2",
-    type: "image",
-    title: "Landing de Captação",
-    tag: "Landing",
-    desc: "Página premium com CTA e performance.",
-    src: "https://images.unsplash.com/photo-1522542550221-31fd19575a2d?auto=format&fit=crop&w=1600&q=80",
-  },
-  {
-    id: "p3",
-    type: "video",
-    title: "Walkthrough do Produto",
-    tag: "Vídeo",
-    desc: "Demonstração rápida (mp4/webm ou embed).",
-    src: "https://www.youtube.com/embed/dQw4w9WgXcQ",
-    thumb:
-      "https://images.unsplash.com/photo-1518779578993-ec3579fee39f?auto=format&fit=crop&w=1600&q=80",
-    embed: true,
-  },
+{
+  id: "p2",
+  type: "video",
+  title: "Lanepage de Produto Premium",
+  tag: "Landing",
+  desc: "Página premium com CTA e performance.",
+  src: gifedVideo,   // ✅ vídeo local gifed.mp4
+  thumb: bannerImg,  // pode usar qualquer imagem de fallback
+  embed: false,      // importante
+},
+{
+  id: "p3",
+  type: "video",
+  title: "Pagina de Consórcio de carros",
+  tag: "Vídeo",
+  desc: "Demonstração rápida (mp4/webm ou embed).",
+  src: wbcVideo, // ✅ local
+  thumb: bannerImg, // ✅ pode usar o banner como capa (ou outra imagem)
+  embed: false, // ✅ agora é <video>, não iframe
+},
   {
     id: "p4",
     type: "image",
@@ -940,12 +943,24 @@ export default function App() {
                       whileHover={{ scale: 1.03 }}
                       transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
                     >
-                      <img
-                        src={cover}
-                        alt={p.title}
-                        className="h-full w-full object-cover opacity-[0.82]"
-                        loading="lazy"
-                      />
+{p.type === "video" ? (
+  <video
+    src={p.src}
+    className="h-full w-full object-cover opacity-[0.82]"
+    autoPlay
+    loop
+    muted
+    playsInline
+    preload="metadata"
+  />
+) : (
+  <img
+    src={cover}
+    alt={p.title}
+    className="h-full w-full object-cover opacity-[0.82]"
+    loading="lazy"
+  />
+)}
                       <div className="absolute inset-0 bg-[linear-gradient(to_top,rgba(0,0,0,0.78),rgba(0,0,0,0.25),rgba(0,0,0,0.15))]" />
                     </motion.div>
 
@@ -957,7 +972,7 @@ export default function App() {
                       </span>
                       {p.type === "video" && (
                         <span className="rounded-full border border-white/10 bg-black/40 px-3 py-1 text-[11px] text-white/70">
-                          ▶ vídeo
+                      
                         </span>
                       )}
                     </div>
