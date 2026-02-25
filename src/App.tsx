@@ -15,8 +15,13 @@ import {
 import logoImg from "./assets/Logo.jpg";
 import bannerImg from "./assets/banner.jpeg";
 
+// ✅ WhatsApp (destino final)
 const WHATSAPP_LINK =
   "https://wa.me/5591999246801?text=Oi!%20Quero%20um%20or%C3%A7amento%20com%20a%20Sync.ode";
+
+// ✅ Página intermediária (OPÇÃO 2) — use isso no Google como meta:
+// https://sync-ode.vercel.app/whatsapp
+const WHATSAPP_ROUTE = "/whatsapp";
 
 // ✅ Google Analytics (GA4)
 const GA_MEASUREMENT_ID = "G-FY4DZV4NPK";
@@ -44,6 +49,7 @@ function ensureGA(measurementId: string) {
   window.gtag =
     window.gtag ||
     function gtag() {
+      // eslint-disable-next-line prefer-rest-params
       window.dataLayer!.push(arguments);
     };
 
@@ -88,10 +94,7 @@ const COMPANY = {
 };
 
 /**
- * ✅ PORTFÓLIO:
- * - type: "image" ou "video"
- * - src: URL da imagem ou vídeo (mp4 / webm) ou embed (youtube/vimeo) via iframe
- * - thumb: miniatura (para vídeos, use thumb da capa)
+ * ✅ PORTFÓLIO
  */
 const PORTFOLIO: Array<
   | {
@@ -122,26 +125,26 @@ const PORTFOLIO: Array<
     desc: "Painel com métricas diárias e funil de atendimento.",
     src: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=1600&q=80",
   },
-{
-  id: "p2",
-  type: "video",
-  title: "Lanepage de Produto Premium",
-  tag: "Landing",
-  desc: "Página premium com CTA e performance.",
-  src: gifedVideo,   // ✅ vídeo local gifed.mp4
-  thumb: bannerImg,  // pode usar qualquer imagem de fallback
-  embed: false,      // importante
-},
-{
-  id: "p3",
-  type: "video",
-  title: "Pagina de Consórcio de carros",
-  tag: "Vídeo",
-  desc: "Demonstração rápida (mp4/webm ou embed).",
-  src: wbcVideo, // ✅ local
-  thumb: bannerImg, // ✅ pode usar o banner como capa (ou outra imagem)
-  embed: false, // ✅ agora é <video>, não iframe
-},
+  {
+    id: "p2",
+    type: "video",
+    title: "Lanepage de Produto Premium",
+    tag: "Landing",
+    desc: "Página premium com CTA e performance.",
+    src: gifedVideo, // ✅ vídeo local gifed.mp4
+    thumb: bannerImg,
+    embed: false,
+  },
+  {
+    id: "p3",
+    type: "video",
+    title: "Pagina de Consórcio de carros",
+    tag: "Vídeo",
+    desc: "Demonstração rápida (mp4/webm ou embed).",
+    src: wbcVideo, // ✅ local wbc.mp4
+    thumb: bannerImg,
+    embed: false,
+  },
   {
     id: "p4",
     type: "image",
@@ -238,7 +241,7 @@ function Ambient({
   );
 }
 
-/** ---- Scroll spy simples (inclui portfolio) ---- */
+/** ---- Scroll spy simples ---- */
 function useActiveSection() {
   const [active, setActive] = useState("#top");
 
@@ -429,10 +432,15 @@ function MediaModal({
                     allowFullScreen
                   />
                 ) : (
+                  // ✅ vídeo local como “gif” (loop)
                   <video
                     src={item.src}
-                    controls
                     className="h-full w-full object-cover"
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    preload="metadata"
                   />
                 )}
               </div>
@@ -441,6 +449,65 @@ function MediaModal({
         </>
       )}
     </AnimatePresence>
+  );
+}
+
+/** ✅ OPÇÃO 2: “/whatsapp” (página intermediária) dentro do mesmo App.tsx */
+function WhatsappRedirectPage() {
+  useEffect(() => {
+    // Page view específico da rota /whatsapp
+    document.title = "Sync.ode • WhatsApp";
+    trackPageView(GA_MEASUREMENT_ID);
+
+    gaEvent("whatsapp_redirect_view", {
+      label: "whatsapp_route_view",
+      where: "route",
+    });
+
+    const t = window.setTimeout(() => {
+      // (opcional) evento antes de sair
+      gaEvent("whatsapp_redirect_go", {
+        label: "whatsapp_route_redirect",
+        where: "route",
+      });
+
+      window.location.href = WHATSAPP_LINK;
+    }, 350);
+
+    return () => window.clearTimeout(t);
+  }, []);
+
+  return (
+    <main className="min-h-screen bg-black text-white">
+      <div className="mx-auto flex min-h-screen max-w-xl flex-col items-center justify-center px-6 text-center">
+        <img
+          src={logoImg}
+          alt="Sync.ode"
+          className="mb-6 h-20 w-20 object-contain"
+        />
+        <div className="text-xl font-semibold">Abrindo o WhatsApp…</div>
+        <div className="mt-2 text-sm text-white/65">
+          Você será redirecionado automaticamente.
+        </div>
+
+        <a
+          href={WHATSAPP_LINK}
+          className="mt-8 inline-flex items-center justify-center rounded-2xl bg-white px-6 py-3 text-sm font-semibold text-black"
+          onClick={() =>
+            gaEvent("click_whatsapp", {
+              where: "whatsapp_route",
+              label: "manual_click_fallback",
+            })
+          }
+        >
+          Se não abrir, clique aqui
+        </a>
+
+        <div className="mt-6 text-xs text-white/45">
+          {COMPANY.tagline}
+        </div>
+      </div>
+    </main>
   );
 }
 
@@ -474,8 +541,22 @@ export default function App() {
     }
     link.type = "image/jpeg";
     link.href = logoImg as unknown as string;
-    document.title = "Sync.ode";
+
+    // título default (se não estiver em /whatsapp)
+    if (window.location.pathname !== WHATSAPP_ROUTE) {
+      document.title = "Sync.ode";
+    }
   }, []);
+
+  // ✅ Se estiver em /whatsapp, renderiza a página intermediária (OPÇÃO 2)
+  const isWhatsappRoute =
+    typeof window !== "undefined" &&
+    (window.location.pathname === WHATSAPP_ROUTE ||
+      window.location.pathname === `${WHATSAPP_ROUTE}/`);
+
+  if (isWhatsappRoute) {
+    return <WhatsappRedirectPage />;
+  }
 
   // mouse parallax
   const mvx = useMotionValue(0);
@@ -528,6 +609,9 @@ export default function App() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
+
+  // ✅ Todos os CTAs de WhatsApp agora apontam pra rota /whatsapp (OPÇÃO 2)
+  const whatsappHref = WHATSAPP_ROUTE;
 
   return (
     <main id="top" className="relative min-h-screen text-white">
@@ -676,17 +760,16 @@ export default function App() {
                 Contato
               </a>
 
-              {/* ✅ EVENTO NO WHATSAPP DO HEADER */}
+              {/* ✅ Agora vai pra /whatsapp (OPÇÃO 2) */}
               <motion.a
-                href={WHATSAPP_LINK}
-                target="_blank"
-                rel="noreferrer"
+                href={whatsappHref}
                 whileHover={{ y: -1 }}
                 whileTap={{ scale: 0.99 }}
                 onClick={() =>
                   gaEvent("click_whatsapp", {
                     where: "header",
                     label: "whatsapp_header",
+                    destination: "route",
                   })
                 }
                 className="relative inline-flex items-center justify-center overflow-hidden rounded-xl bg-white px-4 py-2 text-sm font-semibold text-black shadow-[0_10px_30px_rgba(255,255,255,0.12)]"
@@ -749,13 +832,13 @@ export default function App() {
                 className="mt-8 flex flex-col gap-3 sm:flex-row"
               >
                 <CTAButton
-                  href={WHATSAPP_LINK}
+                  href={whatsappHref}
                   primary
-                  external
                   onClick={() =>
                     gaEvent("click_whatsapp", {
                       where: "hero",
                       label: "cta_pedir_orcamento",
+                      destination: "route",
                     })
                   }
                 >
@@ -943,24 +1026,25 @@ export default function App() {
                       whileHover={{ scale: 1.03 }}
                       transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
                     >
-{p.type === "video" ? (
-  <video
-    src={p.src}
-    className="h-full w-full object-cover opacity-[0.82]"
-    autoPlay
-    loop
-    muted
-    playsInline
-    preload="metadata"
-  />
-) : (
-  <img
-    src={cover}
-    alt={p.title}
-    className="h-full w-full object-cover opacity-[0.82]"
-    loading="lazy"
-  />
-)}
+                      {p.type === "video" ? (
+                        <video
+                          src={p.src}
+                          className="h-full w-full object-cover opacity-[0.82]"
+                          autoPlay
+                          loop
+                          muted
+                          playsInline
+                          preload="metadata"
+                        />
+                      ) : (
+                        <img
+                          src={cover}
+                          alt={p.title}
+                          className="h-full w-full object-cover opacity-[0.82]"
+                          loading="lazy"
+                        />
+                      )}
+
                       <div className="absolute inset-0 bg-[linear-gradient(to_top,rgba(0,0,0,0.78),rgba(0,0,0,0.25),rgba(0,0,0,0.15))]" />
                     </motion.div>
 
@@ -972,7 +1056,7 @@ export default function App() {
                       </span>
                       {p.type === "video" && (
                         <span className="rounded-full border border-white/10 bg-black/40 px-3 py-1 text-[11px] text-white/70">
-                      
+                          ▶ vídeo
                         </span>
                       )}
                     </div>
@@ -1026,16 +1110,24 @@ export default function App() {
                   Clareza do começo ao fim.
                 </h3>
                 <p className="mt-3 text-sm leading-relaxed text-white/65">
-                  Poucas etapas, comunicação direta e entrega incremental —
-                  sempre com contrato e escopo definidos.
+                  Poucas etapas, comunicação direta e entrega incremental — sempre
+                  com contrato e escopo definidos.
                 </p>
               </div>
 
               <div className="md:col-span-7">
                 <div className="grid gap-3">
                   {[
-                    { n: "01", t: "Diagnóstico", d: "Entendemos objetivo, gargalo e requisitos." },
-                    { n: "02", t: "Escopo & Contrato", d: "Definimos entregas, prazos e responsabilidades." },
+                    {
+                      n: "01",
+                      t: "Diagnóstico",
+                      d: "Entendemos objetivo, gargalo e requisitos.",
+                    },
+                    {
+                      n: "02",
+                      t: "Escopo & Contrato",
+                      d: "Definimos entregas, prazos e responsabilidades.",
+                    },
                     { n: "03", t: "MVP", d: "Você usa cedo, valida rápido e reduz risco." },
                     { n: "04", t: "Evolução", d: "Ajustes com base no uso real + suporte contínuo." },
                   ].map((s, idx) => (
@@ -1095,8 +1187,8 @@ export default function App() {
                   Vamos conversar.
                 </h3>
                 <p className="mt-4 text-sm leading-relaxed text-white/65">
-                  Me diga o que você quer automatizar ou criar. Retornamos um
-                  plano completo com proposta, contrato e escopo definido.
+                  Me diga o que você quer automatizar ou criar. Retornamos um plano
+                  completo com proposta, contrato e escopo definido.
                 </p>
 
                 <div className="mt-4 rounded-2xl border border-white/10 bg-black/30 p-4 text-sm text-white/70">
@@ -1109,22 +1201,21 @@ export default function App() {
               </div>
 
               <div className="flex flex-col gap-3">
-                {/* ✅ EVENTO NO "ENTRAR EM CONTATO" */}
+                {/* ✅ Agora vai pra /whatsapp (OPÇÃO 2) */}
                 <CTAButton
-                  href={WHATSAPP_LINK}
+                  href={whatsappHref}
                   primary
-                  external
                   onClick={() =>
                     gaEvent("click_whatsapp", {
                       where: "contato",
                       label: "cta_entrar_em_contato",
+                      destination: "route",
                     })
                   }
                 >
                   Entrar em Contato
                 </CTAButton>
 
-                {/* ✅ EVENTO NO EMAIL */}
                 <motion.a
                   href={`mailto:${COMPANY.email}`}
                   whileHover={{ y: -1 }}
@@ -1192,15 +1283,15 @@ export default function App() {
                     {COMPANY.email}
                   </a>
 
+                  {/* ✅ Agora vai pra /whatsapp (OPÇÃO 2) */}
                   <a
                     className="block hover:text-white"
-                    href={WHATSAPP_LINK}
-                    target="_blank"
-                    rel="noreferrer"
+                    href={whatsappHref}
                     onClick={() =>
                       gaEvent("click_whatsapp", {
                         where: "footer",
                         label: "whatsapp_footer",
+                        destination: "route",
                       })
                     }
                   >
@@ -1217,8 +1308,6 @@ export default function App() {
                   EMPRESA
                 </div>
                 <div className="mt-3 space-y-2 text-sm text-white/70">
-                  <div>
-                  </div>
                   <div>
                     <span className="text-white/50">Instagram:</span>{" "}
                     {COMPANY.instagram}
@@ -1244,3 +1333,16 @@ export default function App() {
     </main>
   );
 }
+
+/*
+✅ IMPORTANTE (Vercel / SPA):
+Para /whatsapp abrir direto sem 404, garanta rewrite.
+Crie vercel.json na raiz do projeto:
+
+{
+  "rewrites": [{ "source": "/(.*)", "destination": "/" }]
+}
+
+No Google Analytics/Ads, use como meta/conversão:
+sync-ode.vercel.app/whatsapp
+*/
