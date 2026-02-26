@@ -19,8 +19,7 @@ import bannerImg from "./assets/banner.jpeg";
 const WHATSAPP_LINK =
   "https://wa.me/5591999246801?text=Oi!%20Quero%20um%20or%C3%A7amento%20com%20a%20Sync.ode";
 
-// ✅ Página intermediária (OPÇÃO 2) — use isso no Google como meta:
-// https://sync-ode.vercel.app/whatsapp
+// ✅ Página intermediária
 const WHATSAPP_ROUTE = "/whatsapp";
 
 // ✅ Google Analytics (GA4)
@@ -131,7 +130,7 @@ const PORTFOLIO: Array<
     title: "Lanepage de Produto Premium",
     tag: "Landing",
     desc: "Página premium com CTA e performance.",
-    src: gifedVideo, // ✅ vídeo local gifed.mp4
+    src: gifedVideo,
     thumb: bannerImg,
     embed: false,
   },
@@ -141,7 +140,7 @@ const PORTFOLIO: Array<
     title: "Pagina de Consórcio de carros",
     tag: "Vídeo",
     desc: "Demonstração rápida (mp4/webm ou embed).",
-    src: wbcVideo, // ✅ local wbc.mp4
+    src: wbcVideo,
     thumb: bannerImg,
     embed: false,
   },
@@ -168,7 +167,7 @@ function cn(...c: Array<string | false | null | undefined>) {
 }
 
 function Container({ children }: { children: React.ReactNode }) {
-  return <div className="mx-auto w-full max-w-6xl px-5 md:px-8">{children}</div>;
+  return <div className="mx-auto w-full max-w-6xl px-4 sm:px-5 md:px-8">{children}</div>;
 }
 
 /** ---- Variants ---- */
@@ -268,6 +267,29 @@ function useActiveSection() {
   return active;
 }
 
+/** ✅ Pathname reativo (SPA) */
+function usePathname() {
+  const [pathname, setPathname] = useState(
+    typeof window !== "undefined" ? window.location.pathname : "/"
+  );
+
+  useEffect(() => {
+    const onPop = () => setPathname(window.location.pathname);
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
+
+  return pathname;
+}
+
+/** ✅ navegação SPA para /whatsapp (sem reload) */
+function goWhatsappRoute() {
+  if (typeof window === "undefined") return;
+  if (window.location.pathname === WHATSAPP_ROUTE) return;
+  window.history.pushState({}, "", WHATSAPP_ROUTE);
+  window.dispatchEvent(new PopStateEvent("popstate"));
+}
+
 /** ---- Card tilt ---- */
 function TiltCard({ title, desc }: { title: string; desc: string }) {
   const ref = useRef<HTMLDivElement | null>(null);
@@ -328,7 +350,7 @@ function CTAButton({
   children: React.ReactNode;
   primary?: boolean;
   external?: boolean;
-  onClick?: () => void;
+  onClick?: (e: React.MouseEvent) => void;
 }) {
   if (primary) {
     return (
@@ -338,7 +360,7 @@ function CTAButton({
         {...(external ? { target: "_blank", rel: "noreferrer" } : {})}
         whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.98 }}
-        className="relative inline-flex items-center justify-center overflow-hidden rounded-2xl bg-white px-6 py-3 text-sm font-semibold text-black shadow-[0_18px_55px_rgba(255,255,255,0.14)]"
+        className="relative inline-flex w-full sm:w-auto items-center justify-center overflow-hidden rounded-2xl bg-white px-6 py-3 text-sm font-semibold text-black shadow-[0_18px_55px_rgba(255,255,255,0.14)]"
       >
         <motion.span
           aria-hidden
@@ -367,7 +389,7 @@ function CTAButton({
       onClick={onClick}
       whileHover={{ y: -1 }}
       whileTap={{ scale: 0.99 }}
-      className="inline-flex items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] px-6 py-3 text-sm text-white/80 backdrop-blur transition hover:bg-white/[0.07]"
+      className="inline-flex w-full sm:w-auto items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] px-6 py-3 text-sm text-white/80 backdrop-blur transition hover:bg-white/[0.07]"
     >
       {children}
     </motion.a>
@@ -394,14 +416,14 @@ function MediaModal({
             onClick={onClose}
           />
           <motion.div
-            className="fixed inset-0 z-[90] flex items-center justify-center p-4"
+            className="fixed inset-0 z-[90] flex items-center justify-center p-3 sm:p-4"
             initial={{ opacity: 0, y: 16, scale: 0.98, filter: "blur(10px)" }}
             animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
             exit={{ opacity: 0, y: 16, scale: 0.98, filter: "blur(10px)" }}
             transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
           >
             <div className="relative w-full max-w-4xl overflow-hidden rounded-3xl border border-white/10 bg-black/60 shadow-[0_30px_120px_rgba(0,0,0,0.7)]">
-              <div className="flex items-center justify-between border-b border-white/10 p-4">
+              <div className="flex items-start sm:items-center justify-between gap-3 border-b border-white/10 p-4">
                 <div className="min-w-0">
                   <div className="text-sm font-semibold tracking-tight">
                     {item.title}
@@ -410,7 +432,7 @@ function MediaModal({
                 </div>
                 <button
                   onClick={onClose}
-                  className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-white/80 hover:bg-white/[0.07]"
+                  className="shrink-0 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-white/80 hover:bg-white/[0.07]"
                 >
                   Fechar
                 </button>
@@ -432,7 +454,6 @@ function MediaModal({
                     allowFullScreen
                   />
                 ) : (
-                  // ✅ vídeo local como “gif” (loop)
                   <video
                     src={item.src}
                     className="h-full w-full object-cover"
@@ -452,10 +473,9 @@ function MediaModal({
   );
 }
 
-/** ✅ OPÇÃO 2: “/whatsapp” (página intermediária) dentro do mesmo App.tsx */
+/** ✅ OPÇÃO 2: “/whatsapp” (página intermediária) */
 function WhatsappRedirectPage() {
   useEffect(() => {
-    // Page view específico da rota /whatsapp
     document.title = "Sync.ode • WhatsApp";
     trackPageView(GA_MEASUREMENT_ID);
 
@@ -465,12 +485,10 @@ function WhatsappRedirectPage() {
     });
 
     const t = window.setTimeout(() => {
-      // (opcional) evento antes de sair
       gaEvent("whatsapp_redirect_go", {
         label: "whatsapp_route_redirect",
         where: "route",
       });
-
       window.location.href = WHATSAPP_LINK;
     }, 350);
 
@@ -503,9 +521,7 @@ function WhatsappRedirectPage() {
           Se não abrir, clique aqui
         </a>
 
-        <div className="mt-6 text-xs text-white/45">
-          {COMPANY.tagline}
-        </div>
+        <div className="mt-6 text-xs text-white/45">{COMPANY.tagline}</div>
       </div>
     </main>
   );
@@ -513,19 +529,24 @@ function WhatsappRedirectPage() {
 
 export default function App() {
   const year = useMemo(() => new Date().getFullYear(), []);
+  const pathname = usePathname();
 
-  // ✅ GOOGLE ANALYTICS (gtag) + pageviews (SPA/hash)
+  // ✅ GOOGLE ANALYTICS (gtag) + pageviews (SPA/hash/path)
   useEffect(() => {
     ensureGA(GA_MEASUREMENT_ID);
 
     const t = window.setTimeout(() => trackPageView(GA_MEASUREMENT_ID), 350);
 
     const onHashChange = () => trackPageView(GA_MEASUREMENT_ID);
+    const onPop = () => trackPageView(GA_MEASUREMENT_ID);
+
     window.addEventListener("hashchange", onHashChange);
+    window.addEventListener("popstate", onPop);
 
     return () => {
       window.clearTimeout(t);
       window.removeEventListener("hashchange", onHashChange);
+      window.removeEventListener("popstate", onPop);
     };
   }, []);
 
@@ -542,17 +563,14 @@ export default function App() {
     link.type = "image/jpeg";
     link.href = logoImg as unknown as string;
 
-    // título default (se não estiver em /whatsapp)
     if (window.location.pathname !== WHATSAPP_ROUTE) {
       document.title = "Sync.ode";
     }
   }, []);
 
-  // ✅ Se estiver em /whatsapp, renderiza a página intermediária (OPÇÃO 2)
+  // ✅ Se estiver em /whatsapp, renderiza a página intermediária
   const isWhatsappRoute =
-    typeof window !== "undefined" &&
-    (window.location.pathname === WHATSAPP_ROUTE ||
-      window.location.pathname === `${WHATSAPP_ROUTE}/`);
+    pathname === WHATSAPP_ROUTE || pathname === `${WHATSAPP_ROUTE}/`;
 
   if (isWhatsappRoute) {
     return <WhatsappRedirectPage />;
@@ -584,6 +602,9 @@ export default function App() {
   const heroBx = useTransform(mx, (v) => `${v * -10}px`);
   const heroBy = useTransform(my, (v) => `${v * -8}px`);
 
+  // ✅ Mobile menu
+  const [mobileOpen, setMobileOpen] = useState(false);
+
   useEffect(() => {
     const onMove = (e: MouseEvent) => {
       const x = (e.clientX / window.innerWidth - 0.5) * 2;
@@ -604,14 +625,31 @@ export default function App() {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpenId(null);
+      if (e.key === "Escape") {
+        setOpenId(null);
+        setMobileOpen(false);
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  // ✅ Todos os CTAs de WhatsApp agora apontam pra rota /whatsapp (OPÇÃO 2)
-  const whatsappHref = WHATSAPP_ROUTE;
+  const onClickWhatsapp = (where: string, label: string) => (e: React.MouseEvent) => {
+    e.preventDefault();
+    gaEvent("click_whatsapp", {
+      where,
+      label,
+      destination: "route",
+    });
+    goWhatsappRoute();
+  };
+
+  const onClickNav = (href: string) => (e: React.MouseEvent) => {
+    // fecha menu mobile e permite scroll âncora normal
+    setMobileOpen(false);
+    // deixa o anchor funcionar
+    // (sem preventDefault)
+  };
 
   return (
     <main id="top" className="relative min-h-screen text-white">
@@ -630,6 +668,71 @@ export default function App() {
         <MediaModal item={openItem} onClose={() => setOpenId(null)} />
       ) : null}
 
+      {/* MOBILE NAV OVERLAY */}
+      <AnimatePresence>
+        {mobileOpen && (
+          <>
+            <motion.div
+              className="fixed inset-0 z-[70] bg-black/70 backdrop-blur-sm md:hidden"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setMobileOpen(false)}
+            />
+            <motion.div
+              className="fixed right-3 top-3 z-[80] w-[calc(100%-24px)] max-w-sm overflow-hidden rounded-3xl border border-white/10 bg-black/75 backdrop-blur md:hidden"
+              initial={{ opacity: 0, y: 12, scale: 0.98, filter: "blur(10px)" }}
+              animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
+              exit={{ opacity: 0, y: 12, scale: 0.98, filter: "blur(10px)" }}
+              transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <div className="flex items-center justify-between border-b border-white/10 p-4">
+                <div className="text-sm font-semibold">Menu</div>
+                <button
+                  onClick={() => setMobileOpen(false)}
+                  className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-white/80 hover:bg-white/[0.07]"
+                >
+                  Fechar
+                </button>
+              </div>
+
+              <div className="p-3">
+                <div className="grid gap-2">
+                  {NAV.map((i) => (
+                    <a
+                      key={i.href}
+                      href={i.href}
+                      onClick={onClickNav(i.href)}
+                      className={cn(
+                        "rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm",
+                        active === i.href ? "text-white" : "text-white/75 hover:text-white"
+                      )}
+                    >
+                      {i.label}
+                    </a>
+                  ))}
+                </div>
+
+                <button
+                  onClick={(e) => onClickWhatsapp("mobile_menu", "whatsapp_mobile_menu")(e as any)}
+                  className="mt-3 w-full rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-black"
+                >
+                  WhatsApp
+                </button>
+
+                <a
+                  href="#contato"
+                  onClick={() => setMobileOpen(false)}
+                  className="mt-2 block w-full rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3 text-center text-sm text-white/80"
+                >
+                  Ir para Contato
+                </a>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
       {/* HEADER */}
       <motion.header
         className={cn(
@@ -644,11 +747,11 @@ export default function App() {
         transition={{ duration: 0.25 }}
       >
         <Container>
-          <div className="flex items-center justify-between py-4">
+          <div className="flex items-center justify-between py-3 sm:py-4">
             {/* BRAND */}
             <motion.a
               href="#top"
-              className="flex items-center gap-4"
+              className="flex items-center gap-3 sm:gap-4"
               initial={{ opacity: 0, y: -10, filter: "blur(10px)" }}
               animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
               transition={{ duration: 0.75, ease: [0.16, 1, 0.3, 1] }}
@@ -665,8 +768,8 @@ export default function App() {
                   }}
                 />
 
-                {/* ✅ LOGO MAIOR */}
-                <div className="relative h-16 w-16 md:h-20 md:w-20">
+                {/* LOGO */}
+                <div className="relative h-14 w-14 sm:h-16 sm:w-16 md:h-20 md:w-20">
                   <img
                     src={logoImg}
                     alt="Sync.ode logo"
@@ -688,7 +791,7 @@ export default function App() {
                     }}
                     className="relative"
                   >
-                    <span className="text-[15px] font-semibold tracking-[-0.02em] md:text-[16px]">
+                    <span className="text-[14px] font-semibold tracking-[-0.02em] sm:text-[15px] md:text-[16px]">
                       <span className="text-white">SYNC</span>
                       <span className="text-white/80">.</span>
                       <span className="text-white/60">ODE</span>
@@ -709,13 +812,13 @@ export default function App() {
                   </motion.div>
                 </div>
 
-                <div className="mt-1 max-w-[340px] text-[11px] text-white/55">
+                <div className="mt-1 hidden max-w-[340px] text-[11px] text-white/55 sm:block">
                   {COMPANY.tagline}
                 </div>
               </div>
             </motion.a>
 
-            {/* NAV */}
+            {/* NAV DESKTOP */}
             <nav className="hidden items-center gap-1 md:flex">
               <div className="relative rounded-2xl border border-white/10 bg-white/[0.03] p-1 backdrop-blur">
                 <div className="flex items-center gap-1">
@@ -727,9 +830,7 @@ export default function App() {
                         href={i.href}
                         className={cn(
                           "relative rounded-xl px-4 py-2 text-sm transition",
-                          isActive
-                            ? "text-white"
-                            : "text-white/70 hover:text-white"
+                          isActive ? "text-white" : "text-white/70 hover:text-white"
                         )}
                       >
                         {isActive && (
@@ -753,6 +854,14 @@ export default function App() {
 
             {/* ACTIONS */}
             <div className="flex items-center gap-2">
+              {/* Mobile menu button */}
+              <button
+                onClick={() => setMobileOpen(true)}
+                className="inline-flex md:hidden rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white/80 backdrop-blur transition hover:bg-white/[0.07]"
+              >
+                Menu
+              </button>
+
               <a
                 href="#contato"
                 className="hidden rounded-xl border border-white/10 bg-white/[0.04] px-4 py-2 text-sm text-white/80 backdrop-blur transition hover:bg-white/[0.07] md:inline-flex"
@@ -760,18 +869,12 @@ export default function App() {
                 Contato
               </a>
 
-              {/* ✅ Agora vai pra /whatsapp (OPÇÃO 2) */}
+              {/* WhatsApp */}
               <motion.a
-                href={whatsappHref}
+                href={WHATSAPP_ROUTE}
                 whileHover={{ y: -1 }}
                 whileTap={{ scale: 0.99 }}
-                onClick={() =>
-                  gaEvent("click_whatsapp", {
-                    where: "header",
-                    label: "whatsapp_header",
-                    destination: "route",
-                  })
-                }
+                onClick={onClickWhatsapp("header", "whatsapp_header")}
                 className="relative inline-flex items-center justify-center overflow-hidden rounded-xl bg-white px-4 py-2 text-sm font-semibold text-black shadow-[0_10px_30px_rgba(255,255,255,0.12)]"
               >
                 <motion.span
@@ -791,10 +894,10 @@ export default function App() {
         </Container>
       </motion.header>
 
-      {/* HERO (BANNER À DIREITA) */}
-      <section className="pt-16 md:pt-24">
+      {/* HERO */}
+      <section className="pt-10 sm:pt-14 md:pt-24">
         <Container>
-          <div className="grid gap-10 md:grid-cols-12 md:items-center">
+          <div className="grid gap-8 md:grid-cols-12 md:items-center">
             {/* texto */}
             <motion.div
               variants={vContainer}
@@ -802,10 +905,7 @@ export default function App() {
               animate="show"
               className="md:col-span-6"
             >
-              <motion.div
-                variants={vFadeUp}
-                className="mb-4 flex flex-wrap gap-2"
-              >
+              <motion.div variants={vFadeUp} className="mb-4 flex flex-wrap gap-2">
                 <Pill>Minimalista</Pill>
                 <Pill>Premium</Pill>
                 <Pill>Alta performance</Pill>
@@ -813,7 +913,7 @@ export default function App() {
 
               <motion.h1
                 variants={vFadeUp}
-                className="text-4xl font-semibold leading-[1.06] tracking-tight md:text-6xl"
+                className="text-3xl sm:text-4xl font-semibold leading-[1.08] tracking-tight md:text-6xl"
               >
                 Software sob medida
                 <span className="text-white/60"> para destravar processos.</span>
@@ -829,18 +929,12 @@ export default function App() {
 
               <motion.div
                 variants={vFadeUp}
-                className="mt-8 flex flex-col gap-3 sm:flex-row"
+                className="mt-7 flex flex-col gap-3 sm:flex-row"
               >
                 <CTAButton
-                  href={whatsappHref}
+                  href={WHATSAPP_ROUTE}
                   primary
-                  onClick={() =>
-                    gaEvent("click_whatsapp", {
-                      where: "hero",
-                      label: "cta_pedir_orcamento",
-                      destination: "route",
-                    })
-                  }
+                  onClick={(e) => onClickWhatsapp("hero", "cta_pedir_orcamento")(e as any)}
                 >
                   Pedir orçamento
                 </CTAButton>
@@ -849,7 +943,7 @@ export default function App() {
 
               <motion.div
                 variants={vFadeUp}
-                className="mt-9 flex flex-wrap gap-2 text-xs text-white/55"
+                className="mt-7 flex flex-wrap gap-2 text-xs text-white/55"
               >
                 <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 backdrop-blur">
                   ✔ Entrega por etapas
@@ -893,7 +987,7 @@ export default function App() {
                   }}
                 />
 
-                <div className="relative aspect-[16/11] w-full">
+                <div className="relative aspect-[16/12] sm:aspect-[16/11] w-full">
                   <img
                     src={bannerImg}
                     alt="Banner Sync.ode"
@@ -923,7 +1017,7 @@ export default function App() {
       </section>
 
       {/* SERVIÇOS */}
-      <section id="servicos" className="pt-14 md:pt-20">
+      <section id="servicos" className="pt-12 md:pt-20">
         <Container>
           <motion.div
             variants={vContainer}
@@ -968,7 +1062,7 @@ export default function App() {
       </section>
 
       {/* PORTFÓLIO */}
-      <section id="portfolio" className="pt-14 md:pt-20">
+      <section id="portfolio" className="pt-12 md:pt-20">
         <Container>
           <motion.div
             variants={vContainer}
@@ -1017,7 +1111,7 @@ export default function App() {
                       "group relative overflow-hidden rounded-3xl border border-white/10 bg-white/[0.04] backdrop-blur text-left",
                       "shadow-[0_0_0_1px_rgba(255,255,255,0.04),0_18px_50px_rgba(0,0,0,0.55)]",
                       "transition duration-300 hover:border-white/20 hover:bg-white/[0.06]",
-                      "h-[260px] md:h-[320px]",
+                      "h-[220px] sm:h-[260px] md:h-[320px]",
                       span
                     )}
                   >
@@ -1065,7 +1159,7 @@ export default function App() {
                       <div className="text-sm font-semibold tracking-tight">
                         {p.title}
                       </div>
-                      <div className="mt-1 text-sm text-white/70 line-clamp-2">
+                      <div className="mt-1 text-sm text-white/70">
                         {p.desc}
                       </div>
 
@@ -1085,7 +1179,7 @@ export default function App() {
       </section>
 
       {/* PROCESSO */}
-      <section id="processo" className="pt-14 md:pt-20">
+      <section id="processo" className="pt-12 md:pt-20">
         <Container>
           <motion.div
             variants={vSoftIn}
@@ -1162,14 +1256,14 @@ export default function App() {
       </section>
 
       {/* CONTATO */}
-      <section id="contato" className="pt-14 md:pt-20 pb-16">
+      <section id="contato" className="pt-12 md:pt-20 pb-14 md:pb-16">
         <Container>
           <motion.div
             variants={vSoftIn}
             initial="hidden"
             whileInView="show"
             viewport={{ once: true, amount: 0.25 }}
-            className="relative overflow-hidden rounded-3xl border border-white/10 bg-white/[0.04] p-8 backdrop-blur md:p-10"
+            className="relative overflow-hidden rounded-3xl border border-white/10 bg-white/[0.04] p-6 sm:p-8 backdrop-blur md:p-10"
           >
             <motion.div
               aria-hidden
@@ -1201,17 +1295,10 @@ export default function App() {
               </div>
 
               <div className="flex flex-col gap-3">
-                {/* ✅ Agora vai pra /whatsapp (OPÇÃO 2) */}
                 <CTAButton
-                  href={whatsappHref}
+                  href={WHATSAPP_ROUTE}
                   primary
-                  onClick={() =>
-                    gaEvent("click_whatsapp", {
-                      where: "contato",
-                      label: "cta_entrar_em_contato",
-                      destination: "route",
-                    })
-                  }
+                  onClick={(e) => onClickWhatsapp("contato", "cta_entrar_em_contato")(e as any)}
                 >
                   Entrar em Contato
                 </CTAButton>
@@ -1232,7 +1319,7 @@ export default function App() {
                   {COMPANY.email}
                 </motion.a>
 
-                <div className="mt-3 text-xs text-white/55">
+                <div className="mt-2 text-xs text-white/55">
                   © {year} {COMPANY.name}: Todos os direitos reservados.
                 </div>
               </div>
@@ -1241,14 +1328,14 @@ export default function App() {
         </Container>
       </section>
 
-      {/* FOOTER COMPLETO */}
+      {/* FOOTER */}
       <footer className="border-t border-white/10 bg-black/50 backdrop-blur">
         <Container>
           <div className="py-10">
             <div className="grid gap-8 md:grid-cols-3">
               {/* Marca */}
               <div className="flex items-start gap-4">
-                <div className="h-24 w-24 overflow-hidden">
+                <div className="h-20 w-20 sm:h-24 sm:w-24 overflow-hidden">
                   <img
                     src={logoImg}
                     alt="Sync.ode logo"
@@ -1283,17 +1370,10 @@ export default function App() {
                     {COMPANY.email}
                   </a>
 
-                  {/* ✅ Agora vai pra /whatsapp (OPÇÃO 2) */}
                   <a
                     className="block hover:text-white"
-                    href={whatsappHref}
-                    onClick={() =>
-                      gaEvent("click_whatsapp", {
-                        where: "footer",
-                        label: "whatsapp_footer",
-                        destination: "route",
-                      })
-                    }
+                    href={WHATSAPP_ROUTE}
+                    onClick={(e) => onClickWhatsapp("footer", "whatsapp_footer")(e as any)}
                   >
                     {COMPANY.phone}
                   </a>
@@ -1336,13 +1416,13 @@ export default function App() {
 
 /*
 ✅ IMPORTANTE (Vercel / SPA):
-Para /whatsapp abrir direto sem 404, garanta rewrite.
-Crie vercel.json na raiz do projeto:
+Para /whatsapp abrir direto sem 404, crie vercel.json na raiz:
 
 {
   "rewrites": [{ "source": "/(.*)", "destination": "/" }]
 }
 
-No Google Analytics/Ads, use como meta/conversão:
-sync-ode.vercel.app/whatsapp
+Depois disso:
+- https://sync-ode.vercel.app/whatsapp abre OK
+- Botões agora navegam por pushState (sem reload) e o redirect funciona liso
 */
