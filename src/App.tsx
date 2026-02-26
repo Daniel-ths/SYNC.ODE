@@ -644,7 +644,7 @@ export default function App() {
     goWhatsappRoute();
   };
 
-  const onClickNav = (href: string) => (e: React.MouseEvent) => {
+  const onClickNav = () => () => {
     // fecha menu mobile e permite scroll âncora normal
     setMobileOpen(false);
     // deixa o anchor funcionar
@@ -702,7 +702,7 @@ export default function App() {
                     <a
                       key={i.href}
                       href={i.href}
-                      onClick={onClickNav(i.href)}
+                      onClick={onClickNav()}
                       className={cn(
                         "rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 text-sm",
                         active === i.href ? "text-white" : "text-white/75 hover:text-white"
